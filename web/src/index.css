@@ -1,0 +1,135 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------
+   ธีมของระบบ: เขียวอ่อน + ขาว (ตามเอกสารออกแบบ)
+   ใช้ใน class ของ Tailwind ได้ เช่น bg-leaf-100, text-ink, border-line
+   --------------------------------------------------------------- */
+@theme {
+  --font-sans: "Sarabun", "Tahoma", sans-serif; /* ฟอนต์มีหัว อ่านง่ายสำหรับผู้ค้าทุกวัย */
+
+  /* ตัวไทยของ Sarabun ดูเล็กกว่าฟอนต์ทั่วไปที่ขนาดเดียวกัน จึงขยายขนาดตัวอักษรขึ้น ~6%
+     (ขยายเฉพาะตัวอักษร ระยะห่างและช่องแผงคงเดิม) */
+  --text-xs: 0.8125rem;   /* 13px */
+  --text-sm: 0.9375rem;   /* 15px */
+  --text-base: 1.0625rem; /* 17px */
+  --text-lg: 1.1875rem;   /* 19px */
+  --text-xl: 1.3125rem;   /* 21px */
+  --text-2xl: 1.625rem;   /* 26px */
+  /* ระยะบรรทัดสำหรับภาษาไทย (สระบน/ล่างและวรรณยุกต์ต้องการที่มากกว่าค่าเริ่มต้นของ Tailwind) */
+  --text-xs--line-height: 1.6;
+  --text-sm--line-height: 1.6;
+  --text-base--line-height: 1.65;
+  --text-lg--line-height: 1.55;
+  --text-xl--line-height: 1.5;
+  --text-2xl--line-height: 1.4;
+
+  --color-leaf-50: #f2f8f1;   /* พื้นหลังแอป */
+  --color-leaf-100: #e3f0e0;  /* แถบเมนู, hover */
+  --color-leaf-200: #cde5c7;
+  --color-leaf-300: #a9d3a0;  /* เส้นขอบเน้น, สถานะเลือกอยู่ */
+  --color-leaf-700: #2f7a3b;  /* ปุ่มหลัก, ลิงก์, แผงที่เช่าแล้ว */
+  --color-leaf-800: #245f2e;  /* ตัวหนังสือบนพื้นเขียวอ่อน */
+
+  --color-ink: #1e2b22;       /* ตัวหนังสือหลัก (เขียวเข้มแทนดำ) */
+  --color-muted: #4b5e50;     /* ตัวหนังสือรอง */
+  --color-line: #d9e6d5;      /* เส้นแบ่งทั่วไป */
+
+  /* สถานะแผง */
+  --color-stall-vacant: #ffffff;
+  --color-stall-reserved: #fcebc0;
+  --color-stall-reserved-ink: #7a4e00;
+  --color-stall-rented: #2f7a3b;
+  --color-stall-maint: #e6e9e4;
+  --color-stall-maint-ink: #3e5144;
+
+  --color-danger: #b42318;
+  --color-danger-bg: #fef0ee;
+}
+
+@layer base {
+  html {
+    color: var(--color-ink);
+    background: var(--color-leaf-50);
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: 1.65; /* ภาษาไทยมีวรรณยุกต์/สระบนล่าง ต้องการระยะบรรทัดมากกว่าภาษาอังกฤษ */
+    font-feature-settings: "tnum" 1; /* ตัวเลขกว้างเท่ากัน ให้ตารางเงินตรงหลัก */
+  }
+  /* ลดการตัดคำไทยแปลก ๆ ท้ายบรรทัด */
+  p, li, h1, h2, h3 {
+    text-wrap: pretty;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-leaf-700);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* หน้าต่างเด้งขึ้น: ขยายจากเล็กน้อยให้เห็นว่าเปิดมาจากการกด (ปิดได้ด้วย prefers-reduced-motion) */
+@keyframes dialog-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.dialog-in {
+  animation: dialog-in 160ms ease-out;
+}
+
+/* ลายเส้นทแยงของแผงที่ปิดซ่อมบำรุง (ไม่ใช้สีอย่างเดียวในการบอกสถานะ) */
+.stall-hatch {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0 3px,
+    rgb(62 81 68 / 0.22) 3px 4.5px
+  );
+}
+
+/* ---------------------------------------------------------------
+   เอกสารพิมพ์ (ใบแจ้งหนี้ / ใบเสร็จ) ขนาด A5
+   บนจอแสดงเป็นแผ่นกระดาษตรงกลาง · ตอนพิมพ์ซ่อนแถบเครื่องมือ
+   --------------------------------------------------------------- */
+@page {
+  size: A5 portrait;
+  margin: 9mm 10mm;
+}
+.paper {
+  width: 148mm;
+  min-height: 210mm;
+  padding: 9mm 10mm;
+  background: #fff;
+  font-size: 10.5pt;
+  line-height: 1.55;
+}
+@media print {
+  html, body {
+    background: #fff !important;
+  }
+  .paper {
+    width: auto;
+    min-height: 0;
+    padding: 0;
+    box-shadow: none !important;
+    border: 0 !important;
+  }
+}
+/* ตราประทับ "ชำระแล้ว" / "ยกเลิก" */
+.doc-stamp {
+  position: absolute;
+  border: 3px solid currentColor;
+  border-radius: 8px;
+  padding: 2px 14px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  transform: rotate(-12deg);
+  opacity: 0.6;
+  pointer-events: none;
+}
