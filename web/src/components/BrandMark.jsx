@@ -1,7 +1,7 @@
 /** โลโก้ระบบ: หลังคาผ้าใบลายทาง + แผงค้า (สีตามสถานะแผง) — แบบเดียวกับ favicon */
-export function GridIcon({ className = 'size-8' }) {
+export function GridIcon({ className = 'size-8', style }) {
   return (
-    <svg viewBox="0 0 32 32" className={className} aria-hidden="true">
+    <svg viewBox="0 0 32 32" className={className} style={style} aria-hidden="true">
       <rect width="32" height="32" rx="7" fill="#2F7A3B" />
       <rect x="5" y="6" width="22" height="2" rx="1" fill="#245F2E" />
       <path d="M6 7.5H12.67V11.5A3.33 2 0 0 1 6 11.5Z" fill="#F2F8F1" />

@@ -212,7 +212,7 @@ export default function LiffStalls() {
                     {sample && <span className="text-sm text-muted">{rentText(sample)}</span>}
                   </div>
                   {zone.stalls.length ? (
-                    <StallBlock zone={zone} shape="grid" cols={8} cell="small" onSelect={setSelected} />
+                    <StallBlock zone={zone} cols={8} size="sm" cell={sample?.unit_type === 'room' ? 'room' : 'stall'} onSelect={setSelected} />
                   ) : (
                     <p className="px-1 text-muted">ยังไม่มีแผงในโซนนี้</p>
                   )}

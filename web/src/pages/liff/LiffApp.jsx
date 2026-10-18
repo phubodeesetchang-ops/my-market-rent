@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom'
 import { GridIcon } from '../../components/BrandMark'
+import LoadingScreen from '../../components/LoadingScreen'
 import { Button } from '../../components/ui/form'
 import { thaiError } from '../../lib/errors'
 import { callLineAuth, lineEmail, liffSupabase, startLiff } from '../../lib/liff'
@@ -184,11 +185,7 @@ export default function LiffApp() {
   )
 
   if (current.phase === 'booting' || current.phase === 'redirecting') {
-    return (
-      <Screen title={current.phase === 'redirecting' ? 'กำลังไปหน้าเข้าสู่ระบบ LINE…' : 'กำลังเปิด…'}>
-        <p className="mt-2 text-muted">รอสักครู่</p>
-      </Screen>
-    )
+    return <LoadingScreen label={current.phase === 'redirecting' ? 'กำลังไปหน้าเข้าสู่ระบบ LINE…' : 'กำลังเปิด…'} />
   }
 
   if (current.phase === 'error') {

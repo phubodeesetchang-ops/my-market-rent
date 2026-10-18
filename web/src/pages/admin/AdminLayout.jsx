@@ -6,6 +6,7 @@ import { useAuth } from '../../auth/AuthProvider'
 import { can } from '../../auth/permissions'
 import { ROLE } from '../../lib/labels'
 import BrandMark from '../../components/BrandMark'
+import { LoadingMark } from '../../components/LoadingScreen'
 
 // เมนูแบ่งกลุ่มตามลักษณะงาน; `show` = เงื่อนไขการแสดงตามบทบาท (ไม่ระบุ = ทุกบทบาท)
 const NAV_GROUPS = [
@@ -176,7 +177,13 @@ export default function AdminLayout() {
       )}
 
       <main className="min-w-0 px-4 py-6 sm:px-8 lg:px-10 lg:py-8">
-        <Suspense fallback={<p className="text-muted">กำลังเปิดหน้า…</p>}>
+        <Suspense
+          fallback={
+            <div className="grid place-items-center py-24" role="status" aria-label="กำลังเปิดหน้า">
+              <LoadingMark size={64} />
+            </div>
+          }
+        >
           <Outlet />
         </Suspense>
       </main>

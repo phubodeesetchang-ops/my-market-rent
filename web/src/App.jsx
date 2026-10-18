@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage'
 import SetupNeeded from './pages/SetupNeeded'
 import AdminLayout from './pages/admin/AdminLayout'
 import FullPageMessage from './components/FullPageMessage'
+import LoadingScreen from './components/LoadingScreen'
 
 // แต่ละหน้าโหลดแยกไฟล์เมื่อเปิด: ผู้เช่าที่เปิดผ่าน LINE บนมือถือไม่ต้องโหลดหน้าของเจ้าหน้าที่ และกลับกัน
 const LiffApp = lazy(() => import('./pages/liff/LiffApp'))
@@ -45,7 +46,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Suspense fallback={<FullPageMessage title="กำลังเปิด…" />}>
+        <Suspense fallback={<LoadingScreen />}>
         <Routes>
           <Route path="/" element={<Navigate to="/admin" replace />} />
           <Route path="/login" element={<LoginPage />} />

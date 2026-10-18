@@ -20,7 +20,7 @@ export function StallCell({ code, status, size = 'md', showCode = true }) {
   }
   return (
     <span
-      className={`inline-flex items-center justify-center rounded-[4px] border font-medium tabular-nums ${sizes[size]} ${CELL_STYLE[status] ?? CELL_STYLE.vacant}`}
+      className={`inline-flex items-center justify-center rounded-md border font-medium tabular-nums ${sizes[size]} ${CELL_STYLE[status] ?? CELL_STYLE.vacant}`}
       title={code ? `${code} ${STALL_STATUS[status] ?? status}` : undefined}
     >
       {showCode && size !== 'sm' ? number : null}
@@ -44,7 +44,7 @@ export function StatusLegend({ counts, className = '' }) {
     <ul className={`flex flex-wrap items-center gap-x-6 gap-y-2 ${className}`}>
       {STALL_STATUS_ORDER.map((status) => (
         <li key={status} className="flex items-center gap-2">
-          <span className={`inline-block h-4 w-4 rounded-[3px] border ${CELL_STYLE[status]}`} aria-hidden="true" />
+          <span className={`inline-block h-4 w-4 rounded border ${CELL_STYLE[status]}`} aria-hidden="true" />
           <span className="text-muted">{STALL_STATUS[status]}</span>
           {counts && <span className="font-semibold text-ink tabular-nums">{formatNumber(counts[status] ?? 0)}</span>}
         </li>

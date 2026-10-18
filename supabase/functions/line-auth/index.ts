@@ -5,16 +5,15 @@
 //  เรียกจากหน้า LIFF (ไม่ต้อง login Supabase มาก่อน):
 //    supabase.functions.invoke('line-auth', { body: { action: 'login', id_token } })
 //    supabase.functions.invoke('line-auth', { body: { action: 'connect', id_token, id_card, phone } })
-//    supabase.functions.invoke('line-auth', { body: { action: 'register', id_token, full_name, id_card, phone, business_name, address } })
-//  ตอบกลับ { session, tenant, line, needs } → หน้าเว็บเรียก supabase.auth.setSession(session)
-//    needs = 'connect' (ยังไม่ผูก ให้กรอกเลขบัตร + เบอร์) | 'register' (ไม่พบในระบบ ให้ลงทะเบียน) | null
+//  ตอบกลับ { session, tenant, line, needs, not_found } → หน้าเว็บเรียก supabase.auth.setSession(session)
+//    needs = 'connect' (ยังไม่ผูก ให้กรอกเลขบัตร + เบอร์) | null
+//    not_found = true เมื่อ connect แล้วไม่พบเลขบัตรนี้ (ผู้เช่าใหม่ต้องให้สำนักงานเพิ่มข้อมูลก่อน — ไม่มีการลงทะเบียนเอง)
 //
 //  ขั้นตอน
 //   1) ตรวจ ID token กับเซิร์ฟเวอร์ LINE (ปลอมไม่ได้: LINE เซ็นและตรวจว่าออกให้ช่องทางของเรา)
 //   2) หา/สร้างบัญชี Supabase ของ LINE คนนั้น (อีเมลสมมติ line_<userId>@line.local ไม่มีการส่งอีเมล)
 //   3) ออก session ให้ (generateLink + verify แบบ token_hash ฝั่งเซิร์ฟเวอร์)
 //   4) ผูกกับข้อมูลผู้เช่า: login = ผูกไว้แล้ว · connect = เลขบัตร + เบอร์โทรตรงกับที่สำนักงานบันทึก
-//      · register = ผู้เช่าใหม่ลงทะเบียนเอง
 //
 //  ตั้งค่า (Edge Functions → line-auth → Secrets): LINE_CHANNEL_ID = Channel ID ของช่องทาง LINE Login
 //  ตั้งชื่อ (slug) ตอน deploy เป็น line-auth · ปิด "Verify JWT with legacy secret" (ผู้เรียกยังไม่ได้ login)
@@ -54,12 +53,8 @@ function secretKey(): string {
 const text = (v: unknown, max = 200) => (typeof v === 'string' ? v.trim().slice(0, max) : '')
 const digits = (v: unknown) => (typeof v === 'string' ? v.replace(/\D/g, '') : '')
 
-function thaiIdOk(id: string): boolean {
-  if (!/^\d{13}$/.test(id)) return false
-  let sum = 0
-  for (let i = 0; i < 12; i++) sum += Number(id[i]) * (13 - i)
-  return (11 - (sum % 11)) % 10 === Number(id[12])
-}
+// ไม่ตรวจหลักสุดท้ายของเลขบัตร: ใช้เทียบกับเลขที่สำนักงานบันทึกไว้อยู่แล้ว (ไม่ตรง = ไม่พบ)
+const idCardOk = (id: string) => /^\d{13}$/.test(id)
 const phoneOk = (p: string) => /^0\d{8,9}$/.test(p)
 
 /** IP ของผู้เช่า (ตัวแรกใน x-forwarded-for) — ส่งต่อให้ Supabase Auth นับ rate limit ต่อผู้เช่า ไม่ใช่ต่อ IP ของ Edge Function */
@@ -102,7 +97,8 @@ async function handle(req: Request): Promise<Response> {
   const ip = clientIp(req)
   const body = await req.json().catch(() => ({}))
   const action = text(body.action)
-  if (!['login', 'connect', 'register'].includes(action)) throw new Problem(400, 'action ต้องเป็น login, connect หรือ register')
+  if (action === 'register') throw new Problem(403, 'ไม่เปิดให้ลงทะเบียนเอง ติดต่อสำนักงานตลาดเพื่อเพิ่มข้อมูลผู้เช่า แล้วผูก LINE ด้วยเลขบัตร + เบอร์โทร')
+  if (!['login', 'connect'].includes(action)) throw new Problem(400, 'action ต้องเป็น login หรือ connect')
 
   const line = await verifyLine(text(body.id_token, 4000))
   const url = Deno.env.get('SUPABASE_URL') ?? ''
@@ -140,10 +136,10 @@ async function handle(req: Request): Promise<Response> {
 
   if (tenant) {
     if (tenant.auth_id !== userId) tenant = await attach(tenant)
-  } else if (action === 'connect' || action === 'register') {
+  } else if (action === 'connect') {
     const idCard = digits(body.id_card)
     const phone = digits(body.phone)
-    if (!thaiIdOk(idCard)) throw new Problem(400, 'เลขบัตรประชาชนไม่ถูกต้อง')
+    if (!idCardOk(idCard)) throw new Problem(400, 'เลขบัตรประชาชนต้องมี 13 หลัก')
     if (!phoneOk(phone)) throw new Problem(400, 'เบอร์โทรต้องขึ้นต้นด้วย 0 และมี 9–10 หลัก')
 
     const byId = await admin.from('tenants').select(`${cols}, id_card`).eq('id_card', idCard).maybeSingle()
@@ -156,24 +152,8 @@ async function handle(req: Request): Promise<Response> {
         throw new Problem(409, 'ข้อมูลผู้เช่านี้ผูกกับ LINE บัญชีอื่นแล้ว — ติดต่อสำนักงานตลาดเพื่อยกเลิกการผูกเดิม')
       }
       tenant = await attach(byId.data)
-    } else if (action === 'register') {
-      const fullName = text(body.full_name, 150)
-      const business = text(body.business_name, 150)
-      const address = text(body.address, 500)
-      if (!fullName || !business || !address) throw new Problem(400, 'กรุณากรอกชื่อ-นามสกุล ชื่อร้าน และที่อยู่ให้ครบ')
-      await admin.from('tenants').update({ auth_id: null }).eq('auth_id', userId)
-      const ins = await admin
-        .from('tenants')
-        .insert({ full_name: fullName, id_card: idCard, phone, business_name: business, address, line_user_id: line.sub, auth_id: userId, status: 'active' })
-        .select(cols)
-        .single()
-      if (ins.error) {
-        if (ins.error.code === '23505') throw new Problem(409, 'ข้อมูลนี้ถูกลงทะเบียนไปแล้ว ลองเปิดใหม่อีกครั้ง หรือติดต่อสำนักงาน')
-        throw ins.error
-      }
-      tenant = ins.data
     }
-    // connect แล้วไม่พบเลขบัตร → tenant = null หน้าเว็บจะให้กรอกข้อมูลลงทะเบียนต่อ
+    // connect แล้วไม่พบเลขบัตร → tenant = null (หน้าเว็บแจ้งให้ติดต่อสำนักงาน)
   }
 
   // ---- 3) ออก session (ทำท้ายสุด และเฉพาะเมื่อผูกกับผู้เช่าแล้ว — บัญชีที่ยังไม่ผูกไม่ต้องมี session) ----
@@ -198,6 +178,7 @@ async function handle(req: Request): Promise<Response> {
     session,
     tenant: tenant ? { tenant_id: tenant.tenant_id, full_name: tenant.full_name, status: tenant.status } : null,
     line: { name: line.name, picture: line.picture },
-    needs: tenant ? null : action === 'connect' ? 'register' : 'connect',
+    needs: tenant ? null : 'connect',
+    not_found: !tenant && action === 'connect',
   })
 }

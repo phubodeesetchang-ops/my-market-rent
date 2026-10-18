@@ -96,7 +96,41 @@ export default function UsersPage() {
           <p className="mt-6 mb-2 text-sm text-muted" aria-live="polite">
             ทั้งหมด {users.length} บัญชี{loading && ' · กำลังโหลดใหม่…'}
           </p>
-          <DataTable label="รายชื่อผู้ใช้ระบบ">
+          {/* มือถือ: การ์ด */}
+          <ul className="divide-y divide-line rounded-xl border border-line sm:hidden" aria-label="รายชื่อผู้ใช้ระบบ">
+            {users.map((u) => {
+              const isSelf = u.user_id === profile?.user_id
+              return (
+                <li key={u.user_id} className={`px-4 py-3 ${u.status === 'active' ? '' : 'bg-leaf-50/60'}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium text-ink">
+                        {u.full_name}
+                        {isSelf && <span className="font-normal text-muted"> (คุณ)</span>}
+                      </p>
+                      <p className="truncate text-sm text-muted">{u.email ?? '-'}</p>
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      <Badge tone={u.role === 'admin' ? 'solid' : u.role === 'staff' ? 'green' : 'outline'}>{ROLE[u.role]}</Badge>
+                      {u.status !== 'active' && <ActiveBadge status={u.status} />}
+                    </div>
+                  </div>
+                  <p className="mt-0.5 text-sm text-muted">
+                    {u.username} · {u.phone ? `${formatPhone(u.phone)} · ` : ''}เพิ่มเมื่อ {formatDate(u.created_at)}
+                  </p>
+                  <div className="-ml-3 mt-1 flex flex-wrap gap-1">
+                    <Button variant="ghost" onClick={() => setDialog({ type: 'edit', user: u })}>
+                      แก้ไข
+                    </Button>
+                    <Button variant="ghost" onClick={() => setDialog({ type: 'password', user: u })}>
+                      ตั้งรหัสผ่านใหม่
+                    </Button>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+          <DataTable label="รายชื่อผู้ใช้ระบบ" className="hidden sm:block">
             <thead>
               <tr>
                 <Th>ชื่อ</Th>

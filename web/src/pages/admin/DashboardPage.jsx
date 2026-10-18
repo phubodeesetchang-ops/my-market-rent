@@ -3,12 +3,14 @@ import { supabase } from '../../lib/supabase'
 import { thaiError } from '../../lib/errors'
 import { formatDate, formatNumber, todayISO } from '../../lib/format'
 import { countByStatus, findStall, indexZones, newStallDefaults, stallTitle } from '../../lib/stalls'
-import { SITE_PLANS } from '../../lib/siteLayouts'
+import { DEFAULT_COLS, SITE_PLANS } from '../../lib/siteLayouts'
+import { useMediaQuery } from '../../lib/useMediaQuery'
 import { useAuth } from '../../auth/AuthProvider'
 import { can } from '../../auth/permissions'
 import { StatusLegend } from '../../components/MarketMap'
-import { SitePlan, ZoneRowsPlan } from '../../components/SitePlan'
+import { SitePlan, ZoneRowsPlan, ZoneStack } from '../../components/SitePlan'
 import StallDialog from '../../components/StallDialog'
+import { LoadingMark } from '../../components/LoadingScreen'
 import StallFormDialog from '../../components/stalls/StallFormDialog'
 
 /** ดึงตลาด → โซน → แผง ในคำสั่งเดียว (RLS: เจ้าหน้าที่ทุกบทบาทเห็นทั้งหมด) */
@@ -52,14 +54,27 @@ function PlanSection({ title, markets, children }) {
         <h2 className="text-lg font-semibold text-ink">{title}</h2>
         <MarketCounts markets={markets} />
       </div>
-      <p className="mb-2 text-sm text-muted sm:hidden">เลื่อนซ้าย-ขวาเพื่อดูผังทั้งหมด</p>
-      <div className="-mx-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">{children}</div>
+      <div className="overflow-x-auto">{children}</div>
     </section>
   )
 }
 
+/** โซนของส่วนผังนี้ ตามลำดับในผัง (ใช้แสดงแบบการ์ดบนมือถือ) */
+function sectionItems(sec, zoneIndex) {
+  if (sec.type === 'site') {
+    return sec.plan.blocks
+      .map((b) => {
+        const found = zoneIndex.get(`${b.market}|${b.zone}`)
+        return found && { market: found.market, zone: found.zone, label: b.label, cell: b.cell }
+      })
+      .filter(Boolean)
+  }
+  return sec.zones.map((zone) => ({ market: sec.market, zone, cell: sec.plan.zoneRows.cell }))
+}
+
 export default function DashboardPage() {
   const { role } = useAuth()
+  const wide = useMediaQuery('(min-width: 768px)')
   const [{ markets, error }, setResult] = useState({ markets: null, error: null })
   const [reloadKey, setReloadKey] = useState(0)
   const [selectedId, setSelectedId] = useState(null)
@@ -116,7 +131,7 @@ export default function DashboardPage() {
       out.push({
         key: `rest-${market.market_id}`,
         type: 'rows',
-        plan: { zoneRows: { cols: 10, cell: 'small' } },
+        plan: { zoneRows: { cols: DEFAULT_COLS, cell: 'stall' } },
         title: partial ? `${market.market_name} (โซนที่ยังไม่ได้วางในผัง)` : market.market_name,
         markets: [market],
         market,
@@ -186,7 +201,12 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {!markets && !error && <p className="mt-8 text-muted" aria-live="polite">กำลังโหลดแผนผังตลาด…</p>}
+      {!markets && !error && (
+        <div className="mt-16 flex flex-col items-center gap-3 text-muted" role="status">
+          <LoadingMark size={64} />
+          กำลังโหลดแผนผังตลาด…
+        </div>
+      )}
 
       {markets && markets.length === 0 && (
         <div className="mt-8 max-w-2xl rounded-xl border border-dashed border-leaf-300 bg-leaf-50 px-5 py-4">
@@ -210,7 +230,9 @@ export default function DashboardPage() {
           <div className="mt-8 space-y-12">
             {sections.map((sec) => (
               <PlanSection key={sec.key} title={sec.title} markets={sec.markets}>
-                {sec.type === 'site' ? (
+                {!wide ? (
+                  <ZoneStack items={sectionItems(sec, zoneIndex)} {...planProps} />
+                ) : sec.type === 'site' ? (
                   <SitePlan plan={sec.plan} zoneIndex={zoneIndex} {...planProps} />
                 ) : (
                   <ZoneRowsPlan

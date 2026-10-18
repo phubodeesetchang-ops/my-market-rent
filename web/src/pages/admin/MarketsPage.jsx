@@ -229,7 +229,36 @@ export default function MarketsPage() {
               {market.fees.length === 0 ? (
                 <EmptyBox>ยังไม่มีค่าธรรมเนียมของตลาดนี้</EmptyBox>
               ) : (
-                <DataTable label={`ค่าธรรมเนียมของ${market.market_name}`}>
+                <>
+                <ul className="divide-y divide-line rounded-xl border border-line sm:hidden" aria-label={`ค่าธรรมเนียมของ${market.market_name}`}>
+                  {market.fees.map((f) => (
+                    <li key={f.fee_id} className="px-4 py-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-medium text-ink">{f.fee_name}</p>
+                          <p className="text-sm text-muted">
+                            {formatBaht(f.fee_amount)} · {FEE_PERIOD[f.fee_period] ?? '-'}
+                          </p>
+                        </div>
+                        <ActiveBadge status={f.status} />
+                      </div>
+                      {canEdit && (
+                        <div className="-ml-3 mt-1 flex flex-wrap gap-1">
+                          <Button variant="ghost" onClick={() => setDialog({ type: 'fee-edit', fee: f })}>
+                            แก้ไข
+                          </Button>
+                          <Button variant="ghost" onClick={() => toggleFee(f)}>
+                            {f.status === 'active' ? 'ระงับ' : 'เปิดใช้'}
+                          </Button>
+                          <Button variant="danger-ghost" onClick={() => setDialog({ type: 'fee-delete', fee: f })}>
+                            ลบ
+                          </Button>
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                <DataTable label={`ค่าธรรมเนียมของ${market.market_name}`} className="hidden sm:block">
                   <thead>
                     <tr>
                       <Th>ชื่อ</Th>
@@ -265,6 +294,7 @@ export default function MarketsPage() {
                     ))}
                   </tbody>
                 </DataTable>
+                </>
               )}
             </Section>
 
@@ -272,7 +302,38 @@ export default function MarketsPage() {
               {market.zones.length === 0 ? (
                 <EmptyBox>ยังไม่มีโซนในตลาดนี้</EmptyBox>
               ) : (
-                <DataTable label={`โซนของ${market.market_name}`}>
+                <>
+                <ul className="divide-y divide-line rounded-xl border border-line sm:hidden" aria-label={`โซนของ${market.market_name}`}>
+                  {market.zones.map((z) => (
+                    <li key={z.zone_id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                      <div className="min-w-0">
+                        <p className="font-medium text-ink">
+                          โซน {z.zone_name}{' '}
+                          <span className="font-normal text-muted">
+                            · {formatNumber(stallCount(z))} {market.market_type === 'building' ? 'ห้อง' : 'แผง'}
+                          </span>
+                        </p>
+                        {z.description && <p className="text-sm text-muted">{z.description}</p>}
+                      </div>
+                      {canEdit && (
+                        <div className="flex shrink-0 gap-1">
+                          <Button variant="ghost" onClick={() => setDialog({ type: 'zone-edit', zone: z })}>
+                            แก้ไข
+                          </Button>
+                          <Button
+                            variant="danger-ghost"
+                            onClick={() => setDialog({ type: 'zone-delete', zone: z })}
+                            disabled={stallCount(z) > 0}
+                            title={stallCount(z) > 0 ? 'ลบได้เฉพาะโซนที่ไม่มีแผง' : undefined}
+                          >
+                            ลบ
+                          </Button>
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                <DataTable label={`โซนของ${market.market_name}`} className="hidden sm:block">
                   <thead>
                     <tr>
                       <Th>โซน</Th>
@@ -306,6 +367,7 @@ export default function MarketsPage() {
                     ))}
                   </tbody>
                 </DataTable>
+                </>
               )}
               {canEdit && market.zones.some((z) => stallCount(z) > 0) && (
                 <p className="mt-2 text-sm text-muted">ลบได้เฉพาะโซนที่ไม่มีแผงแล้ว (ลบแผงได้ที่หน้าภาพรวมหรือหน้าแผงค้า)</p>

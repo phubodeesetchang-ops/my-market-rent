@@ -2,6 +2,7 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './AuthProvider'
 import { thaiError } from '../lib/errors'
 import FullPageMessage from '../components/FullPageMessage'
+import LoadingScreen from '../components/LoadingScreen'
 
 const PROBLEM_TEXT = {
   'not-officer': {
@@ -31,7 +32,7 @@ export default function RequireStaff({ roles, children }) {
   const location = useLocation()
 
   if (checking) {
-    return <FullPageMessage title="กำลังตรวจสอบสิทธิ์" />
+    return <LoadingScreen label="กำลังตรวจสอบสิทธิ์…" />
   }
   if (!session) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />

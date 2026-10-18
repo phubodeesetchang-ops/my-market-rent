@@ -5,6 +5,7 @@ import { thaiError } from '../lib/errors'
 import BrandMark from '../components/BrandMark'
 import { StallCell } from '../components/MarketMap'
 import { liffUrl } from '../lib/liff'
+import LoadingScreen from '../components/LoadingScreen'
 
 // ลายแผนผังตลาดฝั่งซ้ายของหน้า login (ตกแต่งเท่านั้น ไม่ใช่ข้อมูลจริง)
 const PATTERN = [
@@ -47,6 +48,8 @@ export default function LoginPage() {
   if (!checking && session && role) {
     return <Navigate to={location.state?.from ?? '/admin'} replace />
   }
+  // กำลังตรวจ session เดิม (เปิดเว็บครั้งแรก) → หน้าโหลด แทนการเห็นฟอร์มแวบหนึ่งแล้วเด้งเข้าระบบ
+  if (checking) return <LoadingScreen />
 
   async function handleSubmit(e) {
     e.preventDefault()
