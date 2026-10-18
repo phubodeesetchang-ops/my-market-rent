@@ -6,8 +6,9 @@ import { formatPromptPayId, promptPayPayload, promptPayProblem } from '../../lib
 /**
  * QR พร้อมเพย์ (SVG คมชัดทั้งบนจอและตอนพิมพ์)
  * amount ไม่ใส่ = QR รับเงินทั่วไป (ใช้ทดสอบสแกนดูชื่อบัญชี)
+ * png = ทำเป็นรูป PNG แทน (บนมือถือแตะค้างเพื่อบันทึกรูป แล้วเปิดในแอปธนาคารได้)
  */
-export function PromptPayQR({ promptpayId, name, amount, size = 176, caption = true, className = '' }) {
+export function PromptPayQR({ promptpayId, name, amount, size = 176, caption = true, png = false, className = '' }) {
   const valid = promptpayId && !promptPayProblem(promptpayId)
   const payload = valid ? promptPayPayload(promptpayId, amount) : null
   const [svg, setSvg] = useState({ payload: null, src: null })
@@ -15,13 +16,19 @@ export function PromptPayQR({ promptpayId, name, amount, size = 176, caption = t
   useEffect(() => {
     if (!payload) return
     let cancelled = false
-    QRCode.toString(payload, { type: 'svg', errorCorrectionLevel: 'M', margin: 1, color: { dark: '#1e2b22', light: '#ffffff' } })
-      .then((text) => !cancelled && setSvg({ payload, src: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(text)}` }))
+    const colors = { dark: '#1e2b22', light: '#ffffff' }
+    const make = png
+      ? QRCode.toDataURL(payload, { errorCorrectionLevel: 'M', margin: 2, width: size * 3, color: colors })
+      : QRCode.toString(payload, { type: 'svg', errorCorrectionLevel: 'M', margin: 1, color: colors }).then(
+          (text) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(text)}`,
+        )
+    make
+      .then((src) => !cancelled && setSvg({ payload, src }))
       .catch(() => !cancelled && setSvg({ payload, src: null }))
     return () => {
       cancelled = true
     }
-  }, [payload])
+  }, [payload, png, size])
 
   if (!valid) return null
   const src = svg.payload === payload ? svg.src : null

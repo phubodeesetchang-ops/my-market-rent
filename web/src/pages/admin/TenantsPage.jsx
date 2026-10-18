@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { compareThai, formatNumber, formatPhone } from '../../lib/format'
 import { stallPlace } from '../../lib/stalls'
@@ -73,11 +74,19 @@ export default function TenantsPage() {
         title="ผู้เช่า"
         description="ข้อมูลผู้เช่าแผงและห้อง ค้นหาจากชื่อ ร้าน เบอร์โทร หรือรหัสแผง"
         actions={
-          canOperate && (
-            <Button variant="primary" size="md" onClick={() => setDialog({ type: 'new' })}>
-              + เพิ่มผู้เช่า
-            </Button>
-          )
+          <>
+            <Link
+              to="/print/liff-poster"
+              className="inline-flex items-center rounded-lg border border-leaf-300 bg-white px-4 py-2 font-medium text-leaf-800 hover:bg-leaf-100"
+            >
+              ป้าย QR เข้า LINE
+            </Link>
+            {canOperate && (
+              <Button variant="primary" size="md" onClick={() => setDialog({ type: 'new' })}>
+                + เพิ่มผู้เช่า
+              </Button>
+            )}
+          </>
         }
       />
       <Notice notice={notice} onClose={() => setNotice(null)} />

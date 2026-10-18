@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Link, Navigate, Route, Routes } from 'react-router-dom'
 import { isSupabaseConfigured } from './lib/supabase'
 import { AuthProvider } from './auth/AuthProvider'
@@ -5,20 +6,23 @@ import RequireStaff from './auth/RequireStaff'
 import LoginPage from './pages/LoginPage'
 import SetupNeeded from './pages/SetupNeeded'
 import AdminLayout from './pages/admin/AdminLayout'
-import DashboardPage from './pages/admin/DashboardPage'
-import UpcomingPage from './pages/admin/UpcomingPage'
-import StallsPage from './pages/admin/StallsPage'
-import TenantsPage from './pages/admin/TenantsPage'
-import MarketsPage from './pages/admin/MarketsPage'
-import UsersPage from './pages/admin/UsersPage'
-import ContractsPage from './pages/admin/ContractsPage'
-import MeterReadingsPage from './pages/admin/MeterReadingsPage'
-import InvoicesPage from './pages/admin/InvoicesPage'
-import PaymentsPage from './pages/admin/PaymentsPage'
-import InvoicePrint from './pages/print/InvoicePrint'
-import ReceiptPrint from './pages/print/ReceiptPrint'
-import LiffHome from './pages/liff/LiffHome'
 import FullPageMessage from './components/FullPageMessage'
+
+// แต่ละหน้าโหลดแยกไฟล์เมื่อเปิด: ผู้เช่าที่เปิดผ่าน LINE บนมือถือไม่ต้องโหลดหน้าของเจ้าหน้าที่ และกลับกัน
+const LiffApp = lazy(() => import('./pages/liff/LiffApp'))
+const DashboardPage = lazy(() => import('./pages/admin/DashboardPage'))
+const UpcomingPage = lazy(() => import('./pages/admin/UpcomingPage'))
+const StallsPage = lazy(() => import('./pages/admin/StallsPage'))
+const TenantsPage = lazy(() => import('./pages/admin/TenantsPage'))
+const MarketsPage = lazy(() => import('./pages/admin/MarketsPage'))
+const UsersPage = lazy(() => import('./pages/admin/UsersPage'))
+const ContractsPage = lazy(() => import('./pages/admin/ContractsPage'))
+const MeterReadingsPage = lazy(() => import('./pages/admin/MeterReadingsPage'))
+const InvoicesPage = lazy(() => import('./pages/admin/InvoicesPage'))
+const PaymentsPage = lazy(() => import('./pages/admin/PaymentsPage'))
+const InvoicePrint = lazy(() => import('./pages/print/InvoicePrint'))
+const ReceiptPrint = lazy(() => import('./pages/print/ReceiptPrint'))
+const LiffPosterPrint = lazy(() => import('./pages/print/LiffPosterPrint'))
 
 // หน้าที่จะทำในขั้นถัด ๆ ไป
 const UPCOMING = [
@@ -41,6 +45,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <Suspense fallback={<FullPageMessage title="กำลังเปิด…" />}>
         <Routes>
           <Route path="/" element={<Navigate to="/admin" replace />} />
           <Route path="/login" element={<LoginPage />} />
@@ -88,9 +93,18 @@ export default function App() {
               </RequireStaff>
             }
           />
-          <Route path="/liff/*" element={<LiffHome />} />
+          <Route
+            path="/print/liff-poster"
+            element={
+              <RequireStaff>
+                <LiffPosterPrint />
+              </RequireStaff>
+            }
+          />
+          <Route path="/liff/*" element={<LiffApp />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </Suspense>
       </AuthProvider>
     </BrowserRouter>
   )

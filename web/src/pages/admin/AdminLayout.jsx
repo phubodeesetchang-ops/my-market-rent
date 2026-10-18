@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useLoader } from '../../lib/useLoader'
@@ -176,7 +176,9 @@ export default function AdminLayout() {
       )}
 
       <main className="min-w-0 px-4 py-6 sm:px-8 lg:px-10 lg:py-8">
-        <Outlet />
+        <Suspense fallback={<p className="text-muted">กำลังเปิดหน้า…</p>}>
+          <Outlet />
+        </Suspense>
       </main>
     </div>
   )

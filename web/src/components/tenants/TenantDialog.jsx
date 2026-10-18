@@ -64,7 +64,7 @@ function ContractItem({ c }) {
 
 /** หน้าต่างข้อมูลผู้เช่า: รายละเอียด, สัญญาทั้งหมด, ปุ่มแก้ไข/ระงับ/ลบ */
 export default function TenantDialog({ tenant, role, onClose, onEdit, onChanged, onDeleted }) {
-  const [confirm, setConfirm] = useState(null) // 'status' | 'delete'
+  const [confirm, setConfirm] = useState(null) // 'status' | 'delete' | 'unlink'
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const navigate = useNavigate()
@@ -87,6 +87,21 @@ export default function TenantDialog({ tenant, role, onClose, onEdit, onChanged,
     if (e) return setError(thaiError(e))
     if (!data?.length) return setError('บันทึกไม่สำเร็จ บัญชีนี้ไม่มีสิทธิ์แก้ไขผู้เช่า')
     onChanged(suspending ? `ระงับผู้เช่า ${tenant.full_name} แล้ว` : `เปิดใช้งานผู้เช่า ${tenant.full_name} แล้ว`)
+  }
+
+  async function unlinkLine() {
+    setBusy(true)
+    setError('')
+    const { data, error: e } = await supabase
+      .from('tenants')
+      .update({ line_user_id: null, auth_id: null })
+      .eq('tenant_id', tenant.tenant_id)
+      .select('tenant_id')
+    setBusy(false)
+    setConfirm(null)
+    if (e) return setError(thaiError(e))
+    if (!data?.length) return setError('บันทึกไม่สำเร็จ บัญชีนี้ไม่มีสิทธิ์แก้ไขผู้เช่า')
+    onChanged(`ยกเลิกการผูก LINE ของ ${tenant.full_name} แล้ว`)
   }
 
   async function remove() {
@@ -132,6 +147,22 @@ export default function TenantDialog({ tenant, role, onClose, onEdit, onChanged,
           </div>
         </div>
       )}
+      {confirm === 'unlink' && (
+        <div className="space-y-3">
+          <p className="text-ink">
+            ยกเลิกการผูก LINE ของ <span className="font-semibold">{tenant.full_name}</span>? บัญชี LINE เดิมจะดูข้อมูลไม่ได้ทันที
+            ผู้เช่าผูกใหม่ได้เองโดยเปิด LINE ของตลาดแล้วกรอกเลขบัตร + เบอร์โทร (ใช้เมื่อเปลี่ยนมือถือ/บัญชี LINE หรือผูกผิดคน)
+          </p>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button onClick={() => setConfirm(null)} disabled={busy}>
+              ไม่ใช่
+            </Button>
+            <Button variant="danger" onClick={unlinkLine} disabled={busy}>
+              {busy ? 'กำลังบันทึก…' : 'ยกเลิกการผูก'}
+            </Button>
+          </div>
+        </div>
+      )}
       {confirm === 'delete' && (
         <div className="space-y-3">
           <p className="text-ink">
@@ -161,6 +192,7 @@ export default function TenantDialog({ tenant, role, onClose, onEdit, onChanged,
             {canOperate && (
               <Button onClick={() => setConfirm('status')}>{suspending ? 'ระงับผู้เช่า' : 'เปิดใช้งาน'}</Button>
             )}
+            {canOperate && tenant.line_user_id && <Button onClick={() => setConfirm('unlink')}>ยกเลิกการผูก LINE</Button>}
           </div>
           {canDelete && (
             <Button variant="danger-ghost" onClick={() => setConfirm('delete')}>

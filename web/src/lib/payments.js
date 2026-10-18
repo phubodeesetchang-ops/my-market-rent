@@ -73,22 +73,25 @@ export function storageError(error) {
   return STORAGE_MESSAGES.find(([re]) => re.test(msg))?.[1] ?? `อัปโหลดสลิปไม่สำเร็จ: ${msg}`
 }
 
-/** อัปโหลดสลิปไปที่ <tenant_id>/<invoice_id>/<สุ่ม>.<นามสกุล> → คืน path สำหรับเก็บใน payments.slip_image */
-export async function uploadSlip(file, tenantId, invoiceId) {
+/**
+ * อัปโหลดสลิปไปที่ <tenant_id>/<invoice_id>/<สุ่ม>.<นามสกุล> → คืน path สำหรับเก็บใน payments.slip_image
+ * client: หน้าผู้เช่า (LIFF) ส่ง Supabase client ของผู้เช่ามา · ไม่ส่ง = client ของเจ้าหน้าที่
+ */
+export async function uploadSlip(file, tenantId, invoiceId, client = supabase) {
   const small = await shrinkImage(file)
   if (small.size > SLIP_MAX_BYTES) throw new Error('ไฟล์สลิปใหญ่เกิน 5 MB')
   const ext = small.type === 'image/png' ? 'png' : small.type === 'image/webp' ? 'webp' : 'jpg'
   const path = `${tenantId}/${invoiceId}/${crypto.randomUUID()}.${ext}`
-  const { error } = await supabase.storage.from(SLIP_BUCKET).upload(path, small, { contentType: small.type, upsert: false })
+  const { error } = await client.storage.from(SLIP_BUCKET).upload(path, small, { contentType: small.type, upsert: false })
   if (error) throw new Error(storageError(error))
   return path
 }
 
 /** ลิงก์ชั่วคราว (10 นาที) สำหรับเปิดดูสลิปหลายรูปพร้อมกัน → { path: url } */
-export async function slipUrls(paths) {
+export async function slipUrls(paths, client = supabase) {
   const list = [...new Set(paths.filter(Boolean))]
   if (list.length === 0) return {}
-  const { data, error } = await supabase.storage.from(SLIP_BUCKET).createSignedUrls(list, 600)
+  const { data, error } = await client.storage.from(SLIP_BUCKET).createSignedUrls(list, 600)
   if (error) throw error
   return Object.fromEntries((data ?? []).filter((d) => d.signedUrl).map((d) => [d.path, d.signedUrl]))
 }
