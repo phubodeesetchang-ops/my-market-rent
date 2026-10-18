@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthProvider'
 import { thaiError } from '../lib/errors'
 import BrandMark from '../components/BrandMark'
 import { StallCell } from '../components/MarketMap'
+import { liffUrl } from '../lib/liff'
 
 // ลายแผนผังตลาดฝั่งซ้ายของหน้า login (ตกแต่งเท่านั้น ไม่ใช่ข้อมูลจริง)
 const PATTERN = [
@@ -132,10 +133,21 @@ export default function LoginPage() {
               {submitting ? 'กำลังเข้าสู่ระบบ…' : 'เข้าสู่ระบบ'}
             </button>
           </form>
+          <p className="mt-3 text-sm text-muted">ลืมรหัสผ่าน ติดต่อผู้ดูแลระบบให้ตั้งรหัสใหม่</p>
 
-          <div className="mt-10 space-y-1 border-t border-line pt-5 text-sm text-muted">
-            <p>ลืมรหัสผ่าน ติดต่อผู้ดูแลระบบให้ตั้งรหัสใหม่</p>
-            <p>ผู้เช่าแผงไม่ต้องเข้าที่หน้านี้ ใช้งานผ่าน <span className="whitespace-nowrap">LINE ของตลาด</span>ได้เลย</p>
+          {/* ผู้เช่าเข้าผ่าน LINE (LIFF) — บนมือถือเปิดในแอป LINE, บนคอมจะให้ login LINE ทางเว็บก่อน */}
+          <div className="mt-8 border-t border-line pt-6">
+            <p className="mb-3 font-medium text-ink">ผู้เช่าแผง</p>
+            <a
+              href={liffUrl() || '/liff'}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#06C755] px-4 py-2.5 font-semibold text-white hover:bg-[#05b34c] focus-visible:outline-[#06C755]"
+            >
+              <svg viewBox="0 0 24 24" className="size-5" fill="currentColor" aria-hidden="true">
+                <path d="M12 3C6.5 3 2 6.6 2 11c0 3.9 3.5 7.2 8.3 7.9.3.1.8.2.9.5.1.3.1.7 0 1l-.1.9c0 .3-.2 1 .9.5s5.9-3.5 8-5.9c1.5-1.6 2-3.2 2-4.9C22 6.6 17.5 3 12 3Z" />
+              </svg>
+              เข้าใช้งานด้วย LINE
+            </a>
+            <p className="mt-2 text-sm text-muted">ดูบิล ส่งสลิป และขอเช่าแผง ไม่ต้องใช้รหัสผ่าน</p>
           </div>
         </div>
       </section>

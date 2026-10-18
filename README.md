@@ -55,7 +55,8 @@ local-market-rent/
 │                         print/ (ใบแจ้งหนี้, ใบเสร็จ, ป้าย QR ผู้เช่า ขนาด A5),
 │                         liff/ (ผู้เช่า: LiffApp, ConnectPage, หน้าแรก, บิล, ใบเสร็จ, เช่าแผง, ข้อมูลของฉัน)
 └── docs/
-    └── data-dictionary.md                     ← Data Dictionary ฉบับที่ตรงกับ SQL
+    ├── data-dictionary.md                     ← Data Dictionary ฉบับที่ตรงกับ SQL
+    └── brand/                                 ← ไอคอนระบบ (icon.svg ต้นฉบับ, line-channel-icon.png สำหรับ LINE)
 ```
 
 ---
@@ -705,7 +706,7 @@ from pg_trigger where tgname = 'contracts_15_tenant_request_rules';
 ที่ <https://developers.line.biz/console/> (เข้าด้วยบัญชี LINE ของผู้ดูแล)
 1. **Create a new provider** → ตั้งชื่อหน่วยงาน เช่น "เทศบาล…" (มีอยู่แล้วข้ามได้)
 2. ใน provider → **Create a new channel** → **LINE Login**
-   - Region: Thailand · Channel name: เช่น "แผงค้าตลาด" (**ห้ามมีคำว่า LINE**) · Description · ใส่ไอคอน
+   - Region: Thailand · Channel name: เช่น "แผงค้าตลาด" (**ห้ามมีคำว่า LINE**) · Description · ไอคอน: ใช้ไฟล์ `docs/brand/line-channel-icon.png`
    - **App types: เลือก Web app** · Email address ของผู้ดูแล → ยอมรับเงื่อนไข → **Create**
 3. แท็บ **Basic settings** → จด **Channel ID** (ตัวเลข 10 หลัก ใช้ในข้อ 8.5) — *ไม่ใช่* Channel secret
 4. แท็บ **LIFF** → **Add**
