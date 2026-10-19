@@ -24,6 +24,7 @@ const PaymentsPage = lazy(() => import('./pages/admin/PaymentsPage'))
 const InvoicePrint = lazy(() => import('./pages/print/InvoicePrint'))
 const ReceiptPrint = lazy(() => import('./pages/print/ReceiptPrint'))
 const LiffPosterPrint = lazy(() => import('./pages/print/LiffPosterPrint'))
+const WebPosterPrint = lazy(() => import('./pages/print/WebPosterPrint'))
 
 // หน้าที่จะทำในขั้นถัด ๆ ไป
 const UPCOMING = [
@@ -99,6 +100,14 @@ export default function App() {
             element={
               <RequireStaff>
                 <LiffPosterPrint />
+              </RequireStaff>
+            }
+          />
+          <Route
+            path="/print/web-poster"
+            element={
+              <RequireStaff>
+                <WebPosterPrint />
               </RequireStaff>
             }
           />

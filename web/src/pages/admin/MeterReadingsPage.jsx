@@ -303,7 +303,7 @@ export default function MeterReadingsPage() {
       )}
 
       {canOperate && rows && (
-        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-white/95 px-4 py-3 backdrop-blur lg:left-[17rem]">
+        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-white/95 px-4 py-3 backdrop-blur lg:left-[18rem]">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
               <FormError>{formError}</FormError>

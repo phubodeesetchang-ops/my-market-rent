@@ -5,20 +5,26 @@ import { compareThai, formatNumber, formatPhone } from '../../lib/format'
 import { stallPlace } from '../../lib/stalls'
 import { digitsOnly } from '../../lib/validate'
 import { useLoader } from '../../lib/useLoader'
+import { useLiveVersion } from '../../lib/notifications'
 import { useAuth } from '../../auth/AuthProvider'
 import { can } from '../../auth/permissions'
 import { ActiveBadge, Badge, DataTable, EmptyBox, LoadError, Notice, PageHeader, Td, Th } from '../../components/ui/feedback'
 import { Button, SelectInput, TextInput } from '../../components/ui/form'
 import TenantDialog from '../../components/tenants/TenantDialog'
 import TenantFormDialog from '../../components/tenants/TenantFormDialog'
+import MaterialIcon from '../../components/icons/MaterialIcon'
 
 // ห้ามใช้ select('*') กับ tenants (คอลัมน์ id_card ถูกปิดไม่ให้อ่านผ่าน API)
 const TENANT_COLUMNS = 'tenant_id, full_name, business_name, phone, address, line_user_id, status, created_at'
 const CONTRACT_COLUMNS =
   'contract_id, contract_no, status, start_date, end_date, rent_amount, rent_period, stalls(stall_id, stall_code, unit_type, zones(zone_name, markets(market_name)))'
 
+// ผู้เช่าที่ลบแล้ว (deleted_at) ไม่แสดงในรายชื่อ — ข้อมูลส่วนตัวถูกล้าง เหลือไว้เป็นประวัติของบิล/ใบเสร็จเท่านั้น
 async function fetchTenants() {
-  const { data, error } = await supabase.from('tenants').select(`${TENANT_COLUMNS}, contracts(${CONTRACT_COLUMNS})`)
+  const { data, error } = await supabase
+    .from('tenants')
+    .select(`${TENANT_COLUMNS}, contracts(${CONTRACT_COLUMNS})`)
+    .is('deleted_at', null)
   if (error) throw error
   return data.sort((a, b) => compareThai(a.full_name, b.full_name))
 }
@@ -52,7 +58,8 @@ function CurrentStalls({ contracts }) {
 
 export default function TenantsPage() {
   const { role } = useAuth()
-  const { data: tenants, error, loading, reload } = useLoader(fetchTenants)
+  const live = useLiveVersion()
+  const { data: tenants, error, loading, reload } = useLoader(fetchTenants, `tenants:${live}`)
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('all')
   const [dialog, setDialog] = useState(null) // { type: 'view' | 'edit' | 'new', id? }
@@ -77,9 +84,17 @@ export default function TenantsPage() {
           <>
             <Link
               to="/print/liff-poster"
-              className="inline-flex items-center rounded-lg border border-leaf-300 bg-white px-4 py-2 font-medium text-leaf-800 hover:bg-leaf-100"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-leaf-300 bg-white py-2 pr-4 pl-3 font-medium text-leaf-800 hover:bg-leaf-100"
             >
+              <MaterialIcon name="qr_code_2" className="size-5" />
               ป้าย QR เข้า LINE
+            </Link>
+            <Link
+              to="/print/web-poster"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-leaf-300 bg-white py-2 pr-4 pl-3 font-medium text-leaf-800 hover:bg-leaf-100"
+            >
+              <MaterialIcon name="qr_code_2" className="size-5" />
+              ป้าย QR เว็บไซต์
             </Link>
             {canOperate && (
               <Button variant="primary" size="md" onClick={() => setDialog({ type: 'new' })}>

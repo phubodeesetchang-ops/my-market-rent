@@ -4,6 +4,7 @@ import { fetchInvoices } from '../../lib/liffData'
 import { outstandingOf, paidOf } from '../../lib/payments'
 import { isOwing, stallLine } from '../../lib/tenantView'
 import { useLoader } from '../../lib/useLoader'
+import { useLiveVersion } from '../../lib/notifications'
 import { Card, ErrorBox, InvoiceBadge, Loading, PageTitle, SectionTitle } from './parts'
 
 function InvoiceItem({ inv }) {
@@ -34,7 +35,8 @@ function InvoiceItem({ inv }) {
 }
 
 export default function LiffInvoices() {
-  const { data, error, reload } = useLoader(fetchInvoices, 'bills')
+  const live = useLiveVersion()
+  const { data, error, reload } = useLoader(fetchInvoices, `bills:${live}`)
   if (error && !data) return <ErrorBox message={error} onRetry={reload} />
   if (!data) return <Loading />
 

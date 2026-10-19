@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { NavLink, Navigate, Route, Routes } from 'react-router-dom'
+import { NavLink, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import { GridIcon } from '../../components/BrandMark'
 import LoadingScreen from '../../components/LoadingScreen'
+import NotificationBell from '../../components/notifications/NotificationBell'
+import NotificationProvider from '../../components/notifications/NotificationProvider'
 import { Button } from '../../components/ui/form'
 import { thaiError } from '../../lib/errors'
 import { callLineAuth, lineEmail, liffSupabase, startLiff } from '../../lib/liff'
@@ -107,35 +109,40 @@ function BottomNav() {
 }
 
 function Shell({ ctx }) {
+  const navigate = useNavigate()
+  const id = ctx.tenant.tenant_id
   return (
     <LiffContext.Provider value={ctx}>
-      <div className="min-h-dvh bg-leaf-50 pb-24">
-        {ctx.line.mock && (
-          <p className="bg-stall-reserved px-4 py-1 text-center text-sm text-stall-reserved-ink">โหมดจำลอง — ไม่ได้เปิดผ่าน LINE</p>
-        )}
-        <header className="border-b border-line bg-white">
-          <div className="mx-auto flex max-w-md items-center gap-3 px-4 py-2.5">
-            <GridIcon className="size-8 shrink-0" />
-            <div className="min-w-0 flex-1 leading-tight">
-              <p className="truncate font-semibold text-ink">{ctx.tenant.business_name || ctx.tenant.full_name}</p>
-              <p className="truncate text-sm text-muted">{ctx.tenant.business_name ? ctx.tenant.full_name : 'ผู้เช่าแผง'}</p>
+      <NotificationProvider client={ctx.client} filter={`tenant_id=eq.${id}`} scope={`tenant:${id}`} onOpen={navigate}>
+        <div className="min-h-dvh bg-leaf-50 pb-24">
+          {ctx.line.mock && (
+            <p className="bg-stall-reserved px-4 py-1 text-center text-sm text-stall-reserved-ink">โหมดจำลอง — ไม่ได้เปิดผ่าน LINE</p>
+          )}
+          <header className="border-b border-line bg-white">
+            <div className="mx-auto flex max-w-md items-center gap-3 px-4 py-2.5">
+              <GridIcon className="size-8 shrink-0" />
+              <div className="min-w-0 flex-1 leading-tight">
+                <p className="truncate font-semibold text-ink">{ctx.tenant.business_name || ctx.tenant.full_name}</p>
+                <p className="truncate text-sm text-muted">{ctx.tenant.business_name ? ctx.tenant.full_name : 'ผู้เช่าแผง'}</p>
+              </div>
+              <NotificationBell align="right" className="-mr-1" />
+              {ctx.line.picture && <img src={ctx.line.picture} alt="" className="size-9 shrink-0 rounded-full border border-line" />}
             </div>
-            {ctx.line.picture && <img src={ctx.line.picture} alt="" className="size-9 shrink-0 rounded-full border border-line" />}
-          </div>
-        </header>
-        <main className="mx-auto max-w-md px-4 pt-4">
-          <Routes>
-            <Route index element={<LiffHome />} />
-            <Route path="bills" element={<LiffInvoices />} />
-            <Route path="bills/:id" element={<LiffInvoice />} />
-            <Route path="stalls" element={<LiffStalls />} />
-            <Route path="me" element={<LiffProfile />} />
-            <Route path="receipts/:id" element={<LiffReceipt />} />
-            <Route path="*" element={<Navigate to="/liff" replace />} />
-          </Routes>
-        </main>
-        <BottomNav />
-      </div>
+          </header>
+          <main className="mx-auto max-w-md px-4 pt-4">
+            <Routes>
+              <Route index element={<LiffHome />} />
+              <Route path="bills" element={<LiffInvoices />} />
+              <Route path="bills/:id" element={<LiffInvoice />} />
+              <Route path="stalls" element={<LiffStalls />} />
+              <Route path="me" element={<LiffProfile />} />
+              <Route path="receipts/:id" element={<LiffReceipt />} />
+              <Route path="*" element={<Navigate to="/liff" replace />} />
+            </Routes>
+          </main>
+          <BottomNav />
+        </div>
+      </NotificationProvider>
     </LiffContext.Provider>
   )
 }

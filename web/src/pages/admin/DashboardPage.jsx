@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useLiveVersion } from '../../lib/notifications'
 import { supabase } from '../../lib/supabase'
 import { thaiError } from '../../lib/errors'
 import { formatDate, formatNumber, todayISO } from '../../lib/format'
@@ -81,6 +82,7 @@ export default function DashboardPage() {
   const [editing, setEditing] = useState(false)
   const [addingZoneId, setAddingZoneId] = useState(null)
   const [notice, setNotice] = useState(null)
+  const live = useLiveVersion() // คำขอเช่าใหม่/ยกเลิก → สถานะแผงเปลี่ยน โหลดผังใหม่
 
   useEffect(() => {
     let cancelled = false
@@ -90,7 +92,7 @@ export default function DashboardPage() {
     return () => {
       cancelled = true
     }
-  }, [reloadKey])
+  }, [reloadKey, live])
 
   const reload = useCallback(() => setReloadKey((k) => k + 1), [])
   const closeDialog = useCallback(() => setSelectedId(null), [])

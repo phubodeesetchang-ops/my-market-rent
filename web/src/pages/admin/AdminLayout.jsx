@@ -1,39 +1,45 @@
-import { Suspense, useEffect, useState } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Suspense, useCallback, useEffect, useState } from 'react'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useLoader } from '../../lib/useLoader'
+import { useLiveVersion } from '../../lib/notifications'
+import { useMediaQuery } from '../../lib/useMediaQuery'
 import { useAuth } from '../../auth/AuthProvider'
 import { can } from '../../auth/permissions'
 import { ROLE } from '../../lib/labels'
 import BrandMark from '../../components/BrandMark'
 import { LoadingMark } from '../../components/LoadingScreen'
+import MaterialIcon from '../../components/icons/MaterialIcon'
+import NotificationProvider from '../../components/notifications/NotificationProvider'
+import NotificationBell from '../../components/notifications/NotificationBell'
 
 // เมนูแบ่งกลุ่มตามลักษณะงาน; `show` = เงื่อนไขการแสดงตามบทบาท (ไม่ระบุ = ทุกบทบาท)
+// icon = ชื่อไอคอน Google Material Symbols (fonts.google.com/icons) — เมนูที่เลือกอยู่ใช้แบบทึบ
 const NAV_GROUPS = [
   {
-    items: [{ to: '/admin', label: 'ภาพรวม', end: true }],
+    items: [{ to: '/admin', label: 'ภาพรวม', icon: 'space_dashboard', end: true }],
   },
   {
     title: 'งานประจำ',
     items: [
-      { to: '/admin/contracts', label: 'คำขอและสัญญาเช่า' },
-      { to: '/admin/readings', label: 'จดมิเตอร์น้ำ-ไฟ' },
-      { to: '/admin/invoices', label: 'ใบแจ้งหนี้' },
-      { to: '/admin/payments', label: 'ตรวจการชำระเงิน' },
+      { to: '/admin/contracts', label: 'คำขอและสัญญาเช่า', icon: 'contract' },
+      { to: '/admin/readings', label: 'จดมิเตอร์น้ำ-ไฟ', icon: 'electric_meter' },
+      { to: '/admin/invoices', label: 'ใบแจ้งหนี้', icon: 'receipt_long' },
+      { to: '/admin/payments', label: 'ตรวจการชำระเงิน', icon: 'payments' },
     ],
   },
   {
     title: 'ข้อมูลหลัก',
     items: [
-      { to: '/admin/stalls', label: 'แผงค้า' },
-      { to: '/admin/tenants', label: 'ผู้เช่า' },
-      { to: '/admin/markets', label: 'ตลาดและอัตราค่าบริการ' },
-      { to: '/admin/users', label: 'ผู้ใช้ระบบ', show: (role) => can(role, 'manageUsers') },
+      { to: '/admin/stalls', label: 'แผงค้า', icon: 'grid_view' },
+      { to: '/admin/tenants', label: 'ผู้เช่า', icon: 'groups' },
+      { to: '/admin/markets', label: 'ตลาดและอัตราค่าบริการ', icon: 'storefront' },
+      { to: '/admin/users', label: 'ผู้ใช้ระบบ', icon: 'manage_accounts', show: (role) => can(role, 'manageUsers') },
     ],
   },
   {
     title: 'สรุปผล',
-    items: [{ to: '/admin/reports', label: 'รายงาน' }],
+    items: [{ to: '/admin/reports', label: 'รายงาน', icon: 'bar_chart' }],
   },
 ]
 
@@ -61,20 +67,23 @@ function Navigation({ role, onNavigate, badges = {} }) {
                     end={item.end}
                     onClick={onNavigate}
                     className={({ isActive }) =>
-                      `block rounded-lg px-3 py-1.5 font-medium ${
+                      `flex items-center gap-2.5 rounded-lg px-3 py-1.5 font-medium ${
                         isActive ? 'bg-white text-leaf-800 ring-1 ring-leaf-300' : 'text-ink hover:bg-leaf-200/60'
                       }`
                     }
                   >
-                    <span className="flex items-center justify-between gap-2">
-                      {item.label}
-                      {badges[item.to] > 0 && (
-                        <span className="rounded-full bg-stall-reserved px-2 text-sm font-semibold text-stall-reserved-ink tabular-nums">
-                          {badges[item.to]}
-                          <span className="sr-only"> รายการรอตรวจ</span>
-                        </span>
-                      )}
-                    </span>
+                    {({ isActive }) => (
+                      <>
+                        <MaterialIcon name={item.icon} fill={isActive} className={`size-5 ${isActive ? 'text-leaf-700' : 'text-muted'}`} />
+                        <span className="min-w-0 flex-1">{item.label}</span>
+                        {badges[item.to] > 0 && (
+                          <span className="rounded-full bg-stall-reserved px-2 text-sm font-semibold text-stall-reserved-ink tabular-nums">
+                            {badges[item.to]}
+                            <span className="sr-only"> รายการรอตรวจ</span>
+                          </span>
+                        )}
+                      </>
+                    )}
                   </NavLink>
                 </li>
               ))}
@@ -96,19 +105,45 @@ function UserBox({ profile, role, onSignOut }) {
       <button
         type="button"
         onClick={onSignOut}
-        className="shrink-0 rounded-lg border border-leaf-300 bg-white px-3 py-1 text-sm font-medium text-leaf-800 hover:bg-leaf-50"
+        className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-leaf-300 bg-white py-1 pr-3 pl-2 text-sm font-medium text-leaf-800 hover:bg-leaf-50"
       >
+        <MaterialIcon name="logout" className="size-4" />
         ออกจากระบบ
       </button>
     </div>
   )
 }
 
+/**
+ * โครงหน้าเจ้าหน้าที่ + ศูนย์แจ้งเตือน
+ * กดแจ้งเตือน → เปิดหน้าที่เกี่ยวข้อง (ติดป้าย fromNotification ไว้กับการเปลี่ยนหน้า
+ * เพื่อให้หน้าเปิดใหม่ตามลิงก์ เช่น ?open=12 แม้อยู่หน้านั้นอยู่แล้ว)
+ */
 export default function AdminLayout() {
+  const { profile } = useAuth()
+  const navigate = useNavigate()
+  const openLink = useCallback((link) => navigate(link, { state: { fromNotification: Date.now() } }), [navigate])
+  const uid = profile?.user_id
+  return (
+    <NotificationProvider client={supabase} filter={uid ? `user_id=eq.${uid}` : null} scope={`staff:${uid}`} onOpen={openLink}>
+      <AdminShell />
+    </NotificationProvider>
+  )
+}
+
+function AdminShell() {
   const { profile, role, signOut } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
-  const { pathname } = useLocation()
-  const pending = useLoader(fetchPendingPayments, pathname)
+  const location = useLocation()
+  const { pathname } = location
+  const live = useLiveVersion()
+  const wide = useMediaQuery('(min-width: 1024px)') // กระดิ่งชุดเดียว: แถบข้าง (จอใหญ่) หรือแถบบน (มือถือ)
+
+  // หน้าเปิดใหม่ทุกครั้งที่มาจากการกดแจ้งเตือน (คงค่าไว้แม้หน้าล้าง query/state ออกภายหลัง)
+  const stamp = location.state?.fromNotification
+  const [pageKey, setPageKey] = useState(stamp ?? 0)
+  if (stamp && stamp !== pageKey) setPageKey(stamp)
+  const pending = useLoader(fetchPendingPayments, `${pathname}:${live}`)
   const badges = { '/admin/payments': pending.data ?? 0 }
 
   // ปิดเมนูมือถือเมื่อกด Esc (ตอนกดเลือกเมนู Navigation เรียก onNavigate ปิดให้เอง)
@@ -120,25 +155,32 @@ export default function AdminLayout() {
   }, [menuOpen])
 
   return (
-    <div className="min-h-dvh bg-white lg:grid lg:grid-cols-[17rem_minmax(0,1fr)]">
+    <div className="min-h-dvh bg-white lg:grid lg:grid-cols-[18rem_minmax(0,1fr)]">
       {/* แถบบนสำหรับมือถือ */}
       <header className="sticky top-0 z-20 flex items-center justify-between border-b border-leaf-300/70 bg-leaf-100 px-4 py-3 lg:hidden">
         <BrandMark compact />
-        <button
-          type="button"
-          onClick={() => setMenuOpen(true)}
-          aria-expanded={menuOpen}
-          aria-controls="mobile-menu"
-          className="rounded-lg border border-leaf-300 bg-white px-3 py-1.5 font-medium text-leaf-800"
-        >
-          เมนู
-        </button>
+        <div className="flex items-center gap-2">
+          {!wide && <NotificationBell align="right" />}
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            aria-expanded={menuOpen}
+            aria-controls="mobile-menu"
+            className="inline-flex items-center gap-1 rounded-lg border border-leaf-300 bg-white py-1.5 pr-3 pl-2 font-medium text-leaf-800"
+          >
+            <MaterialIcon name="menu" className="size-5" />
+            เมนู
+          </button>
+        </div>
       </header>
 
       {/* เมนูด้านข้าง (จอใหญ่) */}
       <aside className="sticky top-0 hidden h-dvh flex-col justify-between gap-4 overflow-y-auto border-r border-leaf-300/70 bg-leaf-100 px-3 py-5 lg:flex">
         <div>
-          <BrandMark className="mb-5 px-3" />
+          <div className="mb-5 flex items-center justify-between gap-1 pl-3">
+            <BrandMark />
+            {wide && <NotificationBell align="left" compact />}
+          </div>
           <Navigation role={role} badges={badges} />
         </div>
         <div className="px-3">
@@ -184,7 +226,7 @@ export default function AdminLayout() {
             </div>
           }
         >
-          <Outlet />
+          <Outlet key={pageKey} />
         </Suspense>
       </main>
     </div>

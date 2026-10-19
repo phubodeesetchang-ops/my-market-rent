@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { PromptPayQR } from '../../components/payments/PromptPayQR'
+import PaymentQrSave from '../../components/payments/PaymentQrSave'
 import { Badge } from '../../components/ui/feedback'
 import { Button, Field, FormError, TextInput } from '../../components/ui/form'
 import { thaiError } from '../../lib/errors'
@@ -21,6 +22,7 @@ import {
 } from '../../lib/payments'
 import { isOwing, stallLine } from '../../lib/tenantView'
 import { useLoader } from '../../lib/useLoader'
+import { useLiveVersion } from '../../lib/notifications'
 import { clearProblem, collectProblems, numberProblem } from '../../lib/validate'
 import { BackLink, Card, ErrorBox, InvoiceBadge, Loading, SectionTitle } from './parts'
 
@@ -229,7 +231,8 @@ function PaymentHistory({ payments }) {
 
 export default function LiffInvoice() {
   const { id } = useParams()
-  const { data, error, reload } = useLoader(() => fetchInvoice(Number(id)), id)
+  const live = useLiveVersion()
+  const { data, error, reload } = useLoader(() => fetchInvoice(Number(id)), `${id}:${live}`)
   const [sent, setSent] = useState(null)
 
   if (error && !data) {
@@ -288,8 +291,17 @@ export default function LiffInvoice() {
             <Card>
               <div className="flex flex-col items-center text-center">
                 <PromptPayQR promptpayId={market.promptpay_id} name={market.promptpay_name} amount={toPay} size={208} png />
+                <PaymentQrSave
+                  promptpayId={market.promptpay_id}
+                  name={market.promptpay_name}
+                  amount={toPay}
+                  invoiceNo={invoice.invoice_no}
+                  period={invoice.billing_period}
+                  dueDate={invoice.due_date}
+                  place={stallLine(invoice.contracts?.stalls)}
+                />
                 <p className="mt-2 text-sm text-muted">
-                  แตะค้างที่รูป QR เพื่อบันทึก แล้วเปิดแอปธนาคาร เลือก "สแกน" และเลือกรูปจากอัลบั้ม หรือใช้มือถืออีกเครื่องสแกน
+                  บันทึกรูป QR แล้วเปิดแอปธนาคาร เลือก &quot;สแกน&quot; และเลือกรูปจากอัลบั้ม หรือใช้มือถืออีกเครื่องสแกนจากจอนี้
                 </p>
               </div>
               <hr className="my-4 border-line" />

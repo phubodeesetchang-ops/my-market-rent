@@ -7,6 +7,7 @@ import { PAYMENT_METHOD, label } from '../../lib/labels'
 import { PAYMENT_SELECT, outstandingOf, paymentState, receiptOf, slipUrls } from '../../lib/payments'
 import { digitsOnly } from '../../lib/validate'
 import { useLoader } from '../../lib/useLoader'
+import { useLiveVersion } from '../../lib/notifications'
 import { useAuth } from '../../auth/AuthProvider'
 import { EmptyBox, LoadError, Notice, PageHeader } from '../../components/ui/feedback'
 import { Field, SelectInput, TextInput } from '../../components/ui/form'
@@ -94,8 +95,9 @@ export default function PaymentsPage() {
   const [params, setParams] = useSearchParams()
   const tab = TABS.some((t) => t.key === params.get('tab')) ? params.get('tab') : 'pending'
   const month = isPeriod(params.get('month')) ? params.get('month') : currentPeriod()
-  const { data, error, loading, reload } = useLoader(() => fetchPayments(tab, month), `${tab}:${month}`)
-  const pendingCount = useLoader(fetchPendingCount, 'pending')
+  const live = useLiveVersion()
+  const { data, error, loading, reload } = useLoader(() => fetchPayments(tab, month), `${tab}:${month}:${live}`)
+  const pendingCount = useLoader(fetchPendingCount, `pending:${live}`)
   const [query, setQuery] = useState('')
   const [marketId, setMarketId] = useState('all')
   const [openId, setOpenId] = useState(() => Number(params.get('open')) || null)

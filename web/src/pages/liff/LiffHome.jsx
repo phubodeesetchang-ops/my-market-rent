@@ -10,6 +10,7 @@ import { useLiff } from '../../lib/liffContext'
 import { outstandingOf, pendingCountOf } from '../../lib/payments'
 import { isOwing, stallLine } from '../../lib/tenantView'
 import { useLoader } from '../../lib/useLoader'
+import { useLiveVersion } from '../../lib/notifications'
 import { Card, ErrorBox, Loading, SectionTitle } from './parts'
 
 const PER = { monthly: 'เดือน', yearly: 'ปี' }
@@ -82,7 +83,8 @@ function ContractRow({ c, onCancel }) {
 
 export default function LiffHome() {
   const { tenant, client } = useLiff()
-  const { data, error, reload } = useLoader(loadHome, 'home')
+  const liveVersion = useLiveVersion()
+  const { data, error, reload } = useLoader(loadHome, `home:${liveVersion}`)
   const [cancelling, setCancelling] = useState(null)
   const [notice, setNotice] = useState('')
 

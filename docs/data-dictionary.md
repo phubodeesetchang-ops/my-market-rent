@@ -27,7 +27,7 @@
 
 ผู้เช่าแผงค้า/ห้อง
 
-*เปลี่ยนจากเอกสารเดิม:* เพิ่ม `line_user_id`, `auth_id` สำหรับ LINE LIFF login
+*เปลี่ยนจากเอกสารเดิม:* เพิ่ม `line_user_id`, `auth_id` สำหรับ LINE LIFF login · `deleted_at` (migration 009) สำหรับลบผู้เช่าโดยเก็บประวัติการเงิน
 
 | Field | Data Type | Key | Null | Description |
 |---|---|---|---|---|
@@ -41,6 +41,7 @@
 | auth_id | UUID | UNIQUE, FK | NULL | บัญชี Supabase Auth ของผู้เช่า (สร้างตอน login ผ่าน LINE ครั้งแรก) |
 | status | VARCHAR(20) |  | NOT NULL | สถานะ: active=ใช้งาน, inactive=ระงับ |
 | created_at | TIMESTAMPTZ |  | NOT NULL | วันที่สร้างข้อมูล |
+| deleted_at | TIMESTAMPTZ |  | NULL | วันเวลาที่ลบข้อมูลผู้เช่า (ล้างข้อมูลส่วนตัวแล้ว เก็บไว้เพื่อประวัติการเงิน) — NULL = ยังใช้งาน |
 
 ## 3. markets
 
@@ -226,3 +227,21 @@
 | amount | DECIMAL(10,2) |  | NOT NULL | จำนวนเงิน |
 | issued_by | UUID | FK | NULL | ผู้ออกใบเสร็จ (FK → users) |
 | created_at | TIMESTAMPTZ |  | NOT NULL | วันที่สร้าง |
+
+## 13. notifications
+
+การแจ้งเตือน (migration 009) — ระบบสร้างจาก trigger ผู้รับเห็นเฉพาะของตัวเอง แก้ได้แค่ `read_at`
+
+*เพิ่มจากเอกสารเดิม* (ผู้ใช้อนุมัติแล้ว) · หนึ่งแถว = ผู้รับหนึ่งคน (แยกสถานะอ่านแล้วรายคน) · เก็บ 180 วัน
+
+| Field | Data Type | Key | Null | Description |
+|---|---|---|---|---|
+| notification_id | BIGINT | PK | NOT NULL | รหัสการแจ้งเตือน (PK) |
+| user_id | UUID | FK | NULL | ผู้รับที่เป็นเจ้าหน้าที่ (FK → users) — NULL = แจ้งผู้เช่า |
+| tenant_id | INT | FK | NULL | ผู้รับที่เป็นผู้เช่า หรือผู้เช่าที่เกี่ยวข้องกับแจ้งเตือนของเจ้าหน้าที่ (FK → tenants) |
+| kind | VARCHAR(40) |  | NOT NULL | ชนิด เช่น payment_submitted, invoice_issued, contract_approved |
+| title | VARCHAR(200) |  | NOT NULL | หัวข้อ |
+| body | TEXT |  | NULL | รายละเอียด |
+| link | VARCHAR(200) |  | NULL | หน้าที่เปิดเมื่อกดแจ้งเตือน เช่น /admin/payments?open=12 |
+| read_at | TIMESTAMPTZ |  | NULL | วันเวลาที่อ่าน — NULL = ยังไม่อ่าน |
+| created_at | TIMESTAMPTZ |  | NOT NULL | วันเวลาที่สร้าง |

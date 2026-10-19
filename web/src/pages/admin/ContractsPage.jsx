@@ -6,6 +6,7 @@ import { contractTiming, liveRenewalOf, termLabel } from '../../lib/contracts'
 import { stallPlace } from '../../lib/stalls'
 import { digitsOnly } from '../../lib/validate'
 import { useLoader } from '../../lib/useLoader'
+import { useLiveVersion } from '../../lib/notifications'
 import { useAuth } from '../../auth/AuthProvider'
 import { can } from '../../auth/permissions'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
@@ -112,7 +113,8 @@ export default function ContractsPage() {
   const { role } = useAuth()
   const [params, setParams] = useSearchParams()
   const tab = TABS.some((t) => t.key === params.get('tab')) ? params.get('tab') : 'pending'
-  const { data: contracts, error, loading, reload } = useLoader(fetchContracts)
+  const live = useLiveVersion()
+  const { data: contracts, error, loading, reload } = useLoader(fetchContracts, `contracts:${live}`)
   const [marketId, setMarketId] = useState('all')
   const [query, setQuery] = useState('')
   const [soonOnly, setSoonOnly] = useState(false)

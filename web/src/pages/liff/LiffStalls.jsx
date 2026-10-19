@@ -11,6 +11,7 @@ import { fetchContracts, fetchMarkets } from '../../lib/liffData'
 import { useLiff } from '../../lib/liffContext'
 import { countByStatus, findStall, stallTitle } from '../../lib/stalls'
 import { useLoader } from '../../lib/useLoader'
+import { useLiveVersion } from '../../lib/notifications'
 import { clearProblem, collectProblems } from '../../lib/validate'
 import { Card, ErrorBox, Loading, PageTitle } from './parts'
 
@@ -137,7 +138,8 @@ function TakenDialog({ found, full, onClose }) {
 }
 
 export default function LiffStalls() {
-  const { data, error, reload } = useLoader(loadStalls, 'stalls')
+  const live = useLiveVersion()
+  const { data, error, reload } = useLoader(loadStalls, `stalls:${live}`)
   const [marketId, setMarketId] = useState(null)
   const [selected, setSelected] = useState(null)
   const [sent, setSent] = useState('')

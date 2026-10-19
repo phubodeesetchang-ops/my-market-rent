@@ -7,6 +7,7 @@ import { INVOICE_STATUS } from '../../lib/labels'
 import { outstandingOf, paidOf, pendingCountOf } from '../../lib/payments'
 import { digitsOnly } from '../../lib/validate'
 import { useLoader } from '../../lib/useLoader'
+import { useLiveVersion } from '../../lib/notifications'
 import { useAuth } from '../../auth/AuthProvider'
 import { can } from '../../auth/permissions'
 import { DataTable, EmptyBox, LoadError, Notice, PageHeader, Td, Th } from '../../components/ui/feedback'
@@ -89,7 +90,8 @@ export default function InvoicesPage() {
   const { role } = useAuth()
   const [params, setParams] = useSearchParams()
   const period = isPeriod(params.get('period')) ? params.get('period') : currentPeriod()
-  const { data, error, loading, reload } = useLoader(() => fetchInvoices(period), period)
+  const liveVersion = useLiveVersion()
+  const { data, error, loading, reload } = useLoader(() => fetchInvoices(period), `${period}:${liveVersion}`)
   const [status, setStatus] = useState('all')
   const [marketId, setMarketId] = useState('all')
   const [query, setQuery] = useState('')

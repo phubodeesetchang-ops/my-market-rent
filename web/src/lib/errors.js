@@ -21,6 +21,9 @@ const PG_MESSAGES = {
   PGRST301: 'การเข้าสู่ระบบหมดอายุ กรุณาเข้าสู่ระบบใหม่',
 }
 
+// ฐานข้อมูลยังไม่มีฟังก์ชัน/ตาราง/คอลัมน์ที่หน้าเว็บรุ่นนี้ใช้ = ยังไม่ได้รัน migration ล่าสุด
+const OUTDATED_DB = new Set(['PGRST202', 'PGRST204', 'PGRST205', '42883', '42P01', '42703'])
+
 const hasThai = (s) => /[฀-๿]/.test(s ?? '')
 
 export function thaiError(error) {
@@ -33,6 +36,9 @@ export function thaiError(error) {
   if (error.code && AUTH_MESSAGES[error.code]) return AUTH_MESSAGES[error.code]
   if (/invalid login credentials/i.test(message)) return AUTH_MESSAGES.invalid_credentials
 
+  if (OUTDATED_DB.has(error.code)) {
+    return 'ฐานข้อมูลยังไม่ได้อัปเดตเป็นรุ่นล่าสุด — ให้ผู้ดูแลระบบรัน migration ใหม่ใน Supabase (ดู README)'
+  }
   if (/row-level security/i.test(message)) return PG_MESSAGES['42501']
   if (error.code && PG_MESSAGES[error.code]) return PG_MESSAGES[error.code]
 

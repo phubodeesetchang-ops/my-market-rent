@@ -1,24 +1,8 @@
-import { useEffect, useState } from 'react'
-import QRCode from 'qrcode'
 import { supabase } from '../../lib/supabase'
 import { LIFF_ID, liffUrl } from '../../lib/liff'
 import { useLoader } from '../../lib/useLoader'
 import PrintLayout from './PrintLayout'
-
-function QrImage({ text, size }) {
-  const [img, setImg] = useState({ text: null, src: null })
-  useEffect(() => {
-    let cancelled = false
-    QRCode.toString(text, { type: 'svg', errorCorrectionLevel: 'M', margin: 1, color: { dark: '#1e2b22', light: '#ffffff' } }).then(
-      (svg) => !cancelled && setImg({ text, src: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}` }),
-    )
-    return () => {
-      cancelled = true
-    }
-  }, [text])
-  const src = img.text === text ? img.src : null
-  return src ? <img src={src} width={size} height={size} alt={`QR เปิดหน้าผู้เช่าใน LINE ${text}`} /> : <div style={{ width: size, height: size }} className="animate-pulse bg-leaf-50" />
-}
+import QrImage from '../../components/QrImage'
 
 async function fetchMarketNames() {
   const { data, error } = await supabase.from('markets').select('market_name').eq('status', 'active').order('market_id')
@@ -46,7 +30,7 @@ export default function LiffPosterPrint() {
         <p className="mt-1 text-[11pt] text-muted">ไม่ต้องเดินมาสำนักงาน ไม่ต้องจำรหัสผ่าน</p>
 
         <div className="mt-5 rounded-2xl border-[3px] border-leaf-700 p-3">
-          <QrImage text={url} size={230} />
+          <QrImage text={url} size={230} alt={`QR เปิดหน้าผู้เช่าใน LINE ${url}`} />
         </div>
         <p className="mt-2 font-semibold text-leaf-800">สแกนเลย</p>
         <p className="text-[9pt] break-all text-muted">{url}</p>

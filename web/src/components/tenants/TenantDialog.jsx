@@ -75,6 +75,10 @@ export default function TenantDialog({ tenant, role, onClose, onEdit, onChanged,
     (a, b) => (ORDER[a.status] ?? 9) - (ORDER[b.status] ?? 9) || b.start_date.localeCompare(a.start_date),
   )
   const liveContracts = contracts.filter((c) => c.status === 'active' || c.status === 'pending').length
+  const activeContracts = contracts.filter((c) => c.status === 'active')
+  const pendingRequests = contracts.filter((c) => c.status === 'pending').length
+  // เคยเช่าจริง (ใช้งาน/สิ้นสุด) = ต้องเก็บประวัติ → ลบเฉพาะข้อมูลส่วนตัว (ฐานข้อมูลตรวจใบแจ้งหนี้ซ้ำอีกชั้น)
+  const hasHistory = contracts.some((c) => c.status === 'active' || c.status === 'expired')
   const suspending = tenant.status === 'active'
 
   async function toggleStatus() {
@@ -104,19 +108,19 @@ export default function TenantDialog({ tenant, role, onClose, onEdit, onChanged,
     onChanged(`ยกเลิกการผูก LINE ของ ${tenant.full_name} แล้ว`)
   }
 
+  // ลบผ่านฟังก์ชัน delete_tenant (migration 009): ไม่มีประวัติ = ลบจริง · มีประวัติ = ล้างข้อมูลส่วนตัว เก็บบิล/ใบเสร็จ
   async function remove() {
     setBusy(true)
     setError('')
-    const { error: e, count } = await supabase.from('tenants').delete({ count: 'exact' }).eq('tenant_id', tenant.tenant_id)
+    const { data, error: e } = await supabase.rpc('delete_tenant', { p_tenant_id: tenant.tenant_id })
     setBusy(false)
     setConfirm(null)
-    if (e) {
-      return setError(
-        e.code === '23503' ? 'ลบไม่ได้ เพราะผู้เช่ารายนี้มีประวัติสัญญาเช่า ให้ใช้ "ระงับผู้เช่า" แทน' : thaiError(e),
-      )
+    if (e) return setError(thaiError(e))
+    if (data?.mode === 'anonymized') {
+      const cancelled = data.cancelled_requests > 0 ? ` · ยกเลิกคำขอเช่าที่ค้าง ${data.cancelled_requests} รายการ` : ''
+      return onDeleted(`ลบข้อมูลส่วนตัวของ ${tenant.full_name} แล้ว — ประวัติสัญญา บิล และใบเสร็จยังอยู่ในรายงาน${cancelled}`)
     }
-    if (count === 0) return setError('ลบไม่สำเร็จ บัญชีนี้ไม่มีสิทธิ์ลบผู้เช่า')
-    onDeleted(`ลบผู้เช่า ${tenant.full_name} แล้ว`)
+    onDeleted(`ลบผู้เช่า ${tenant.full_name} ออกจากระบบแล้ว`)
   }
 
   const footer = (canOperate || canDelete) && (
@@ -163,17 +167,47 @@ export default function TenantDialog({ tenant, role, onClose, onEdit, onChanged,
           </div>
         </div>
       )}
-      {confirm === 'delete' && (
-        <div className="space-y-3">
+      {confirm === 'delete' && activeContracts.length > 0 && (
+        <div className="space-y-3" data-testid="delete-blocked">
           <p className="text-ink">
-            ลบ <span className="font-semibold">{tenant.full_name}</span> ออกจากระบบถาวร? ลบได้เฉพาะผู้เช่าที่ยังไม่เคยมีสัญญาเช่า
+            ยังลบ <span className="font-semibold">{tenant.full_name}</span> ไม่ได้ เพราะมีสัญญาที่ใช้งานอยู่{' '}
+            {activeContracts.map((c) => `${c.contract_no} (${stallPlace(c.stalls)})`).join(', ')} — ยกเลิกหรือปิดสัญญาก่อน แล้วจึงลบผู้เช่า
           </p>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button onClick={() => setConfirm(null)}>ปิด</Button>
+            <Button variant="primary" onClick={() => navigate(`/admin/contracts?tab=active&open=${activeContracts[0].contract_id}`)}>
+              เปิดสัญญา
+            </Button>
+          </div>
+        </div>
+      )}
+      {confirm === 'delete' && activeContracts.length === 0 && (
+        <div className="space-y-3">
+          {hasHistory ? (
+            <div className="space-y-1.5 text-ink">
+              <p>
+                ลบ <span className="font-semibold">{tenant.full_name}</span>?
+              </p>
+              <p className="text-muted">
+                ผู้เช่ารายนี้มีประวัติการเช่า ระบบจะ<span className="font-semibold text-ink">ล้างข้อมูลส่วนตัว</span> (ชื่อ เลขบัตรประชาชน
+                เบอร์โทร ที่อยู่ ชื่อร้าน และบัญชี LINE) และนำออกจากรายชื่อ ส่วนสัญญา ใบแจ้งหนี้ ใบเสร็จ และยอดรายได้ยังเก็บไว้ในรายงาน
+                โดยแสดงชื่อเป็น &quot;ผู้เช่าที่ลบข้อมูลแล้ว&quot;
+                {pendingRequests > 0 && ` · คำขอเช่าที่รออนุมัติ ${pendingRequests} รายการจะถูกยกเลิก`}
+              </p>
+              <p className="text-sm text-danger">ย้อนกลับไม่ได้ ถ้าแค่หยุดเช่าชั่วคราว ให้ใช้ &quot;ระงับผู้เช่า&quot; แทน</p>
+            </div>
+          ) : (
+            <p className="text-ink">
+              ลบ <span className="font-semibold">{tenant.full_name}</span> ออกจากระบบถาวร?
+              {contracts.length > 0 && ' คำขอเช่าที่ยังไม่เคยอนุมัติของผู้เช่ารายนี้จะถูกลบไปด้วย'}
+            </p>
+          )}
           <div className="flex flex-wrap justify-end gap-2">
             <Button onClick={() => setConfirm(null)} disabled={busy}>
               ไม่ลบ
             </Button>
             <Button variant="danger" onClick={remove} disabled={busy}>
-              {busy ? 'กำลังลบ…' : 'ลบผู้เช่า'}
+              {busy ? 'กำลังลบ…' : hasHistory ? 'ลบข้อมูลส่วนตัว' : 'ลบผู้เช่า'}
             </Button>
           </div>
         </div>
